@@ -1,7 +1,7 @@
 /*
 rabbitmq简单模式
- */
-package rabbitmqDemo
+*/
+package rabbitmq
 
 import (
 	"github.com/streadway/amqp"

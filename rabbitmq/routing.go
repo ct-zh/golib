@@ -1,22 +1,22 @@
-package rabbitmqDemo
+package rabbitmq
 
 import (
 	"github.com/streadway/amqp"
 	"log"
 )
 
-func NewSubscribe(exchangeName string) *RabbitMQ {
-	return NewRabbitMQ("", exchangeName, "")
+// 新建路由模式实例
+func NewRouting(exchangeName string, routingKey string) *RabbitMQ {
+	return NewRabbitMQ("", exchangeName, routingKey)
 }
 
-func (r *RabbitMQ) PublishPub(message string) {
+func (r *RabbitMQ) PublishRouting(message string) {
 	// 尝试创建交换机
 	err := r.channel.ExchangeDeclare(
 		r.Exchange,
-		"fanout",
+		"direct", // 路由模式类型
 		true,
 		false,
-		// true 表示这个exchange不可以被client用来推送消息，仅仅用来进行exchange之间的绑定
 		false,
 		false,
 		nil)
@@ -24,23 +24,23 @@ func (r *RabbitMQ) PublishPub(message string) {
 
 	err = r.channel.Publish(
 		r.Exchange,
-		"",
+		r.Key,
 		false,
 		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        []byte(message),
 		})
+
 }
 
-func (r *RabbitMQ) ReceiveSub() {
+func (r *RabbitMQ) ReceiveRouting() {
 	// 尝试创建交换机
 	err := r.channel.ExchangeDeclare(
 		r.Exchange,
-		"fanout",
+		"direct", // 路由模式类型
 		true,
 		false,
-		// true 表示这个exchange不可以被client用来推送消息，仅仅用来进行exchange之间的绑定
 		false,
 		false,
 		nil)
@@ -60,7 +60,7 @@ func (r *RabbitMQ) ReceiveSub() {
 	err = r.channel.QueueBind(
 		q.Name,
 		// 在pub/sub 模式下，这里的key要为空
-		"",
+		r.Key,
 		r.Exchange,
 		false,
 		nil)
@@ -86,4 +86,5 @@ func (r *RabbitMQ) ReceiveSub() {
 
 	log.Printf("[*] Waiting for messages, To exit  press CTRL + C")
 	<-forever
+
 }
