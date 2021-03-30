@@ -2,17 +2,23 @@ package simple
 
 // 最简单的set实现
 
-type Set map[string]struct{}
+type set struct {
+	m map[string]struct{}
+}
 
-func (s Set) Has(key string) bool {
-	_, ok := s[key]
+func NewSet() *set {
+	return &set{m: make(map[string]struct{})}
+}
+
+func (s *set) Has(key string) bool {
+	_, ok := s.m[key]
 	return ok
 }
 
-func (s Set) Add(key string) {
-	s[key] = struct{}{}
+func (s *set) Add(key string) {
+	s.m[key] = struct{}{}
 }
 
-func (s Set) Delete(key string) {
-	delete(s, key)
+func (s *set) Delete(key string) {
+	delete(s.m, key)
 }
