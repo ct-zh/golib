@@ -1,0 +1,17 @@
+# docker compose 配置redis slave
+# 1主2从,两个slave复制master的数据
+# docker-compose -f master-slave.yml up -d
+version: '3'
+services:
+  master:
+    image: redis:latest
+    container_name: master
+    network_mode: slave_default
+  slave1:
+    image: redis:latest
+    container_name: slave1
+    network_mode: slave_default
+  slave2:
+    image: redis:latest
+    container_name: slave2
+    network_mode: slave_default
