@@ -6,12 +6,41 @@ services:
   master:
     image: redis:latest
     container_name: master
-    network_mode: slave_default
+    networks:
+      slave_default2:
+        ipv4_address: 172.16.10.10
   slave1:
     image: redis:latest
     container_name: slave1
-    network_mode: slave_default
+    depends_on:
+      - master
+    networks:
+      slave_default2:
+        ipv4_address: 172.16.10.12
   slave2:
     image: redis:latest
     container_name: slave2
-    network_mode: slave_default
+    depends_on:
+      - master
+      - slave1
+    networks:
+      slave_default2:
+        ipv4_address: 172.16.10.11
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "sleep 3 \
+        && redis-cli -h 172.16.10.10 -p 6379 slaveof no one \
+        && redis-cli -h 172.16.10.12 -p 6379 slaveof 172.16.10.10 6379\
+        && redis-cli slaveof 172.16.10.10 6379" >> run.sh
+        /bin/bash run.sh
+        redis-server
+networks:
+  slave_default2:
+    driver: bridge
+    name: slave_default2
+    ipam:
+      config:
+        - subnet: "172.16.10.0/16"
+          gateway: "172.16.10.1"
