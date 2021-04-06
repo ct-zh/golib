@@ -1,0 +1,47 @@
+# server 192.168.199.197
+version: '3.9'
+services:
+  server1:
+    container_name: server1
+    image: redis:latest
+    ports:
+      - 12221:12221
+    command: redis-server --port 12221
+    networks:
+      - ov_net
+  server2:
+    container_name: server2
+    image: redis:latest
+    depends_on:
+      - server1
+    ports:
+      - 12222:12222
+    command: redis-server --port 12222 --slaveof 192.168.199.197 12221
+    networks:
+      - ov_net
+  server3:
+    container_name: server3
+    image: redis:latest
+    depends_on:
+      - server1
+    ports:
+      - 12223:12223
+    command: redis-server --port 12223 --slaveof 192.168.199.197 12221
+    networks:
+      - ov_net
+  server4:
+    container_name: server4
+    image: redis:latest
+    depends_on:
+      - server1
+    ports:
+      - 12224:12224
+    command: redis-server --port 12224 --slaveof 192.168.199.197 12221
+    networks:
+      - ov_net
+networks:
+  ov_net:
+    external:
+      name: ov_net
+
+

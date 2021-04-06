@@ -1,0 +1,46 @@
+version: '3'
+services:
+  sentinel1:
+    image: redis:latest
+    container_name: sentinel1
+    ports:
+      - 26379:26379
+    volumes:
+      - ./redisVolume1:/data
+    command: redis-server /data/sentinel.conf --sentinel
+    networks:
+      - ov_net
+  sentinel2:
+    image: redis:latest
+    container_name: sentinel2
+    ports:
+      - 26378:26378
+    volumes:
+      - ./redisVolume2:/data
+    command: redis-server /data/sentinel.conf --sentinel
+    networks:
+      - ov_net
+  sentinel3:
+    image: redis:latest
+    container_name: sentinel3
+    ports:
+      - 26377:26377
+    volumes:
+      - ./redisVolume3:/data
+    command: redis-server /data/sentinel.conf --sentinel
+    networks:
+      - ov_net
+
+  server5:
+    container_name: server5
+    image: redis:latest
+    ports:
+      - 6379:6379
+    command: redis-server --port 6379 --slaveof 192.168.199.197 12221
+    networks:
+      - ov_net
+
+networks:
+  ov_net:
+    external:
+      name: ov_net
