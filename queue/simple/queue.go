@@ -1,21 +1,45 @@
 package simple
 
-type queue []interface{}
-
-func New() *queue {
-	return &queue{}
+type queue interface {
+	LPush(v interface{})
+	LPop() interface{}
+	RPush(v interface{})
+	RPop() interface{}
+	IsEmpty() bool
+	Len() int
 }
 
-func (q *queue) Push(v interface{}) {
+type simpleQueue []interface{}
+
+func New() *simpleQueue {
+	return &simpleQueue{}
+}
+
+func (q *simpleQueue) RPush(v interface{}) {
 	*q = append(*q, v)
 }
 
-func (q *queue) Pop() interface{} {
+func (q *simpleQueue) RPop() interface{} {
+	tail := (*q)[len(*q)-1]
+	*q = (*q)[0 : len(*q)-1]
+	return tail
+}
+
+func (q *simpleQueue) LPush(v interface{}) {
+	head := []interface{}{v}
+	*q = append(head, *q...)
+}
+
+func (q *simpleQueue) LPop() interface{} {
 	head := (*q)[0]
 	*q = (*q)[1:]
 	return head
 }
 
-func (q *queue) IsEmpty() bool {
+func (q *simpleQueue) IsEmpty() bool {
 	return len(*q) == 0
+}
+
+func (q *simpleQueue) Len() int {
+	return len(*q)
 }
