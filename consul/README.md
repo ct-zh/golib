@@ -115,11 +115,12 @@ Multiple private IPv4 addresses found. Please configure one with 'bind' and/or '
 - retry-join: 类似于-join，但允许在连接成功之前重试连接。一旦它成功加入到成员列表中的成员，它就再也不会尝试加入。agents将通过gossip维持他们的会员资格。这对于您知道地址最终将可用的情况非常有用。
 
 ## consul go
-> package：github.com/micro/go-micro/v2/config
+### 使用consul api实现配置中心
+> 依赖包: github.com/hashicorp/consul/api
 
 
-### 服务注册
-> github.com/micro/go-plugins/registry/consul/v2
+### go-micro实现服务注册
+> 使用包: github.com/micro/go-plugins/registry/consul/v2
 ```
 // 注册中心
 consul.NewRegistry(func(options *registry.Options) {
@@ -130,5 +131,20 @@ consul.NewRegistry(func(options *registry.Options) {
 micro.NewService(micro.Registry(consulRegister))
 ```
 
-### 配置中心
-> github.com/micro/go-plugins/config/source/consul/v2
+### go-micro实现 配置中心
+> 依赖包: github.com/micro/go-plugins/config/source/consul/v2
+>
+> github.com/micro/go-micro/v2/config 
+```go
+consulSource := consul.NewSource(
+		//设置配置中心的地址
+		consul.WithAddress(host+":"+strconv.FormatInt(port, 10)),
+		//设置前缀，不设置默认前缀 /micro/config
+		consul.WithPrefix(prefix),
+		//是否移除前缀，这里是设置为true，表示可以不带前缀直接获取对应配置
+		consul.StripPrefix(true),
+	)
+	config.NewConfig()
+	conf.Load(consulSource)
+```
+
