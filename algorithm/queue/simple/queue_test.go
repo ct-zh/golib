@@ -2,9 +2,10 @@ package simple
 
 import (
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
 	"sync"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func tQueue(q Queue) {
