@@ -1,0 +1,46 @@
+version: '3'
+services:
+  consul1:
+    image: consul
+    container_name: consul_1
+    ports:
+      - 18500:8500
+    networks:
+      consul_default:
+        ipv4_address: 172.16.12.2
+    command: agent -dev -client=0.0.0.0 # 注意command 是以agent开始， 而不是consul agent
+    environment:
+      CONSUL_BIND_INTERFACE: eth0 # 设定默认网卡是eth0, 这里对应172.16.12.2, 相当于参数`-bind=172.16.12.2`
+
+  consul2:
+    image: consul
+    container_name: consul_2
+    depends_on:
+      - consul1
+    networks:
+      consul_default:
+        ipv4_address: 172.16.12.3
+    command: agent -dev -client=0.0.0.0 -retry-join=consul_1
+    environment:
+      CONSUL_BIND_INTERFACE: eth0
+
+  consul3:
+    image: consul
+    container_name: consul_3
+    depends_on:
+      - consul1
+    networks:
+      consul_default:
+        ipv4_address: 172.16.12.4
+    command: agent -dev -client=0.0.0.0 -retry-join=consul_1
+    environment:
+      CONSUL_BIND_INTERFACE: eth0
+
+networks:
+  consul_default:
+    driver: bridge
+    name: consul_default
+    ipam:
+      config:
+        - subnet: "172.16.12.0/16"
+          gateway: "172.16.12.1"
