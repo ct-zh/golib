@@ -1,7 +1,7 @@
 package zk
 
 import (
-	"fmt"
+	"errors"
 	"github.com/samuel/go-zookeeper/zk"
 	"time"
 )
@@ -16,7 +16,7 @@ func NewManager(hosts []string, pathPrefix string) *Manager {
 	return &Manager{hosts: hosts, pathPrefix: pathPrefix}
 }
 
-//连接zk服务器
+// 连接zk服务器
 func (z *Manager) GetConnect() error {
 	conn, _, err := zk.Connect(z.hosts, 5*time.Second)
 	if err != nil {
@@ -26,63 +26,63 @@ func (z *Manager) GetConnect() error {
 	return nil
 }
 
-//关闭服务
+// 关闭连接
 func (z *Manager) Close() {
 	z.conn.Close()
 	return
 }
 
-//获取配置
+// 获取配置
 func (z *Manager) GetPathData(nodePath string) ([]byte, *zk.Stat, error) {
 	return z.conn.Get(nodePath)
 }
 
-//更新配置
-func (z *Manager) SetPathData(nodePath string, config []byte, version int32) (err error) {
+// 编辑配置，不存在则创建
+func (z *Manager) SetPathData(nodePath string, config []byte) (err error) {
+	// 先判断是否存在
 	ex, _, _ := z.conn.Exists(nodePath)
 	if !ex {
 		z.conn.Create(nodePath, config, 0, zk.WorldACL(zk.PermAll))
 		return nil
 	}
+
+	// 存在则需要版本号进行编辑
 	_, dStat, err := z.GetPathData(nodePath)
 	if err != nil {
 		return
 	}
+
 	_, err = z.conn.Set(nodePath, config, dStat.Version)
 	if err != nil {
-		fmt.Println("Update node error", err)
-		return err
+		return errors.New("Update node error: " + err.Error())
 	}
-	fmt.Println("SetData ok")
+
 	return
 }
 
-//创建临时节点
+// 创建临时节点
 func (z *Manager) RegisterServerPath(nodePath, host string) (err error) {
 	ex, _, err := z.conn.Exists(nodePath)
 	if err != nil {
-		fmt.Println("Exists error", nodePath)
 		return err
 	}
 	if !ex {
-		//持久化节点，思考题：如果不是持久化节点会怎么样？
 		_, err = z.conn.Create(nodePath, nil, 0, zk.WorldACL(zk.PermAll))
 		if err != nil {
-			fmt.Println("Create error", nodePath)
 			return err
 		}
 	}
-	//临时节点
+
 	subNodePath := nodePath + "/" + host
 	ex, _, err = z.conn.Exists(subNodePath)
 	if err != nil {
-		fmt.Println("Exists error", subNodePath)
 		return err
 	}
+
 	if !ex {
+		// 创建临时节点: zk.FlagEphemeral
 		_, err = z.conn.Create(subNodePath, nil, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		if err != nil {
-			fmt.Println("Create error", subNodePath)
 			return err
 		}
 	}
@@ -95,7 +95,7 @@ func (z *Manager) GetServerListByPath(path string) (list []string, err error) {
 	return
 }
 
-//watch机制，服务器有断开或者重连，收到消息
+// watch机制，服务器有断开或者重连，收到消息
 func (z *Manager) WatchServerListByPath(path string) (chan []string, chan error) {
 	conn := z.conn
 	snapshots := make(chan []string)
@@ -112,7 +112,7 @@ func (z *Manager) WatchServerListByPath(path string) (chan []string, chan error)
 				if evt.Err != nil {
 					errors <- evt.Err
 				}
-				fmt.Printf("ChildrenW Event Path:%v, Type:%v\n", evt.Path, evt.Type)
+				//fmt.Printf("ChildrenW Event Path:%v, Type:%v\n", evt.Path, evt.Type)
 			}
 		}
 	}()
@@ -120,7 +120,7 @@ func (z *Manager) WatchServerListByPath(path string) (chan []string, chan error)
 	return snapshots, errors
 }
 
-//watch机制，监听节点值变化
+// watch机制，监听节点值变化
 func (z *Manager) WatchPathData(nodePath string) (chan []byte, chan error) {
 	conn := z.conn
 	snapshots := make(chan []byte)
@@ -140,7 +140,7 @@ func (z *Manager) WatchPathData(nodePath string) (chan []byte, chan error) {
 					errors <- evt.Err
 					return
 				}
-				fmt.Printf("GetW Event Path:%v, Type:%v\n", evt.Path, evt.Type)
+				//fmt.Printf("GetW Event Path:%v, Type:%v\n", evt.Path, evt.Type)
 			}
 		}
 	}()
