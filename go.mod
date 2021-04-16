@@ -3,6 +3,7 @@ module github.com/ct-zh/golib
 go 1.14
 
 require (
+	github.com/Shopify/sarama v1.28.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-redsync/redsync v1.4.2
