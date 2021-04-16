@@ -1,0 +1,17 @@
+syntax = "proto3";
+option go_package = "./;msg";
+
+// protoc --go_out=. *.proto
+package msg;
+
+message MsgRequest {
+  string name = 1;
+}
+
+message MsgResponse {
+  string msg = 1;
+}
+
+service SayService {
+  rpc Say(MsgRequest) returns (MsgResponse);
+}
