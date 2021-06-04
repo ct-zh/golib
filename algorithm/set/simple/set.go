@@ -22,3 +22,8 @@ func (s *set) Add(key string) {
 func (s *set) Delete(key string) {
 	delete(s.m, key)
 }
+
+func (s *set) Exist(k string) bool {
+	_, ok := s.m[k]
+	return ok
+}
