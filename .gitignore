@@ -1,0 +1,12 @@
+
+# ignore
+.idea
+**/.DS_Store
+**/logs
+
+# gitlab ci
+.cache
+
+# vim auto backup file
+*~
+!OWNERS
