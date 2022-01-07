@@ -44,3 +44,14 @@ func TestAdd(t *testing.T) {
 	wg.Wait()
 	assert.Equal(t, 5050, len(r.Take()))
 }
+
+func BenchmarkAdd(b *testing.B) {
+	r := NewRing(500)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := 0; i < b.N; i++ {
+				r.Add(i)
+			}
+		}
+	})
+}
