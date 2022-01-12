@@ -1,12 +1,14 @@
 package threading
 
+import "log"
+
 func Recover(cleanups ...func()) {
 	for _, cleanup := range cleanups {
 		cleanup()
 	}
 
 	if r := recover(); r != nil {
-		panic(r) // ?
+		log.Print(r)
 	}
 }
 
