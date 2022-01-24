@@ -1,4 +1,4 @@
-package demo
+package stream
 
 import (
 	ring2 "github.com/ct-zh/golib/collection/ring"
