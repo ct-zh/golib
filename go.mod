@@ -13,5 +13,7 @@ require (
 	github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/streadway/amqp v1.0.0
+	github.com/stretchr/testify v1.7.0
+	go.uber.org/goleak v1.1.12
 	google.golang.org/protobuf v1.26.0
 )

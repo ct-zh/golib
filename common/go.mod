@@ -1,4 +1,4 @@
-module common
+module github.com/ct-zh/golib/common
 
 go 1.18
 
