@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"math"
@@ -8,7 +9,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	tls "git.inke.cn/tpc/inf/go-tls"
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
@@ -489,14 +489,12 @@ func addFields(enc zapcore.ObjectEncoder, fields []zapcore.Field) {
 		fields[i].AddTo(enc)
 	}
 	if !traceIDExist {
-		ctx, ok := tls.GetContext()
-		if ok {
-			enc.AddString(traceIDKey, extraTraceID(ctx))
-			for _, cb := range contextList {
-				k, v := cb(ctx)
-				if len(k) != 0 && len(v) != 0 {
-					enc.AddString(k, v)
-				}
+		ctx := context.Background()
+		enc.AddString(traceIDKey, extraTraceID(ctx))
+		for _, cb := range contextList {
+			k, v := cb(ctx)
+			if len(k) != 0 && len(v) != 0 {
+				enc.AddString(k, v)
 			}
 		}
 	}
