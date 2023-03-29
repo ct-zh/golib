@@ -12,10 +12,6 @@ type contextFunc func(ctx context.Context) (string, string)
 
 var contextList []contextFunc
 
-func RegisteCtx(cb contextFunc) {
-	contextList = append(contextList, cb)
-}
-
 func extraTraceID(ctx context.Context) string {
 	span := opentracing.SpanFromContext(ctx)
 	var traceID string

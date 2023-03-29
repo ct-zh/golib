@@ -51,26 +51,11 @@ var (
 
 const (
 	_jsonDataTaskKey = "service_name"
-	localIP          = "local_ip"
-	uniqID           = "uniq_id"
-)
-
-// Logger name for default loggers
-const (
-	DefaultLoggerName = "_default"
-	SlowLoggerName    = "_slow"
-	GenLoggerName     = "_gen"
-	CrashLoggerName   = "_crash"
-	BalanceLoggerName = "_balance"
 )
 
 func init() {
 	_defaultLogger = New()
-	logs[DefaultLoggerName] = _defaultLogger
-	logs[SlowLoggerName] = slowlog
-	logs[GenLoggerName] = genlog
-	logs[CrashLoggerName] = crashlog
-	logs[BalanceLoggerName] = balancelog
+	logs["_default"] = _defaultLogger
 	if host, _ := HostIP(); host != nil {
 		hostIP = host.To4().String()
 	}
