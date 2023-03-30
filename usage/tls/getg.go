@@ -1,4 +1,4 @@
-package threading
+package tls
 
 import (
 	"unsafe"
