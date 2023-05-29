@@ -7,7 +7,7 @@ import (
 	"github.com/elastic/go-elasticsearch"
 )
 
-// elasticsearch的基本操作, 通过go-elasticsearch包
+// 测试es是否能连接成功
 func main() {
 	cfg := NewConfig()
 
