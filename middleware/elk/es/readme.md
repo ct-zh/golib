@@ -30,6 +30,12 @@ docker run --name kibana -p 5601:5601 --network=NETWORK_NAME -e ELASTICSEARCH_HO
 
 确定是否能使用es了：[see  connect连接es](./demo/main.go)
 
+### 基本操作
+
+- [elasticsearch基本CURD](./demo/main.go)
+
+- [elasticSearch本地集群yml](./demo3/docker-compose.yml)
+
 
 ### 概念
 Elasticsearch的基本概念有以下几个：

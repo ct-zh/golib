@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 	"testing"
 
 	"github.com/elastic/go-elasticsearch/esapi"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 // es基本操作
@@ -25,7 +27,7 @@ type Article struct {
 	StrCount int64    `json:"str_count,omitempty"`
 }
 
-// 2.写入数据
+// 2.增、删、查
 func TestWriteData(t *testing.T) {
 	// 这个是咱们要写入es的数据
 	article := &Article{
@@ -36,27 +38,66 @@ func TestWriteData(t *testing.T) {
 		StrCount: 3,
 	}
 
-	// 转成一个ioReader
-	body := new(bytes.Buffer)
-	if err := json.NewEncoder(body).Encode(article); err != nil {
-		t.Fatal(err)
-	}
+	Convey("TestMyData", t, func() {
+		Convey("TestWriteData", func() {
+			// 转成一个ioReader
+			body := new(bytes.Buffer)
+			err := json.NewEncoder(body).Encode(article)
+			So(err, ShouldBeNil)
 
-	req := esapi.IndexRequest{
-		Index:      ArticleIndex,
-		DocumentID: "article_202304",
-		Body:       body,
-		Refresh:    "true",
-	}
-	res, err := req.Do(context.Background(), client)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
+			req := esapi.IndexRequest{
+				Index:      ArticleIndex,
+				DocumentID: "article_202304",
+				Body:       body,
+				Refresh:    "true",
+			}
 
-	if res.IsError() {
-		t.Logf("[%s] Error indexing document", res.Status())
-		t.Fail()
-	}
-	t.Logf("success")
+			res, err := req.Do(context.Background(), client)
+			So(err, ShouldBeNil)
+
+			defer res.Body.Close()
+			So(res.IsError(), ShouldBeFalse)
+
+			result := map[string]interface{}{}
+			err = jsoniter.NewDecoder(res.Body).Decode(&result)
+			So(err, ShouldBeNil)
+
+			Printf("res = %+v", result)
+		})
+
+		Convey("TestReadData", func() {
+			buf := new(bytes.Buffer)
+			query := map[string]interface{}{
+				"query": map[string]interface{}{
+					"term": map[string]interface{}{
+						"title": "How to scientifically raise pigs",
+					},
+				},
+			}
+			encoder := jsoniter.NewEncoder(buf)
+			err := encoder.Encode(&query)
+			So(err, ShouldBeNil)
+
+			res, err := client.Search(
+				client.Search.WithContext(context.Background()),
+				client.Search.WithIndex(ArticleIndex),
+				client.Search.WithBody(buf),
+				client.Search.WithTrackTotalHits(true),
+				client.Search.WithPretty(),
+			)
+			So(err, ShouldBeNil)
+			defer res.Body.Close()
+
+			So(res.IsError(), ShouldBeFalse)
+
+			r := new(Article)
+			err = jsoniter.NewDecoder(res.Body).Decode(&r)
+			So(err, ShouldBeNil)
+
+			So(r.Title, ShouldEqual, "How to scientifically raise pigs")
+			So(r, ShouldEqual, article)
+		})
+
+	})
+
 }
