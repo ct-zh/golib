@@ -1,9 +1,13 @@
 # protobuf
-protobuf 即 Protocol Buffers，是一种轻便高效的结构化数据存储格式，与语言、平台无关，可扩展可序列化。protobuf 性能和效率大幅度优于 JSON、XML 等其他的结构化数据格式。protobuf 是以二进制方式存储的，占用空间小，但也带来了可读性差的缺点。
+protobuf 即 Protocol Buffers，是一种轻便高效的结构化数据存储格式，与语言、平台无关，可扩展可序列化。
+protobuf 性能和效率大幅度优于 JSON、XML 等其他的结构化数据格式。
+protobuf 是以二进制方式存储的，占用空间小，但也带来了可读性差的缺点。
 
 [官方文档](https://developers.google.com/protocol-buffers/docs/overview)
 
-
+## demo
+- [使用protobuf做编码](https://github.com/ct-zh/golib/blob/master/middleware/protobuf/simple/main.go)
+- [protobuf实现简单rpc服务器与客户端](https://github.com/ct-zh/golib/blob/master/middleware/protobuf/rpc/server/server.go)
 
 ## 错误
 报错
@@ -19,3 +23,8 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 ## reference
 > - [protobuf教程](https://geektutu.com/post/quick-go-protobuf.html)
+
+## 如何传递一个`map[string]slice`
+因为proto3不支持value里使用repeated；建议使用`google.protobuf.ListValue`;
+
+

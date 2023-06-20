@@ -3,8 +3,11 @@ option go_package = "./;main";
 // protoc --go_out=. *.proto
 package main;
 
+google.protobuf.ListValue
+
 message Student {
   string name = 1;
   bool male = 2;
   repeated int32 scores = 3;
+  map<string, google.protobuf.ListValue> d = 4;
 }
