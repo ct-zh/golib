@@ -1,6 +1,6 @@
 module github.com/ct-zh/golib
 
-go 1.14
+go 1.18
 
 require (
 	github.com/Shopify/sarama v1.28.0
