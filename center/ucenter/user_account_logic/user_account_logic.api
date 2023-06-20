@@ -1,0 +1,12 @@
+type Request {
+	Name string `path:"name,options=you|me"`
+}
+
+type Response {
+	Message string `json:"message"`
+}
+
+service user_account_logic-api {
+	@handler User_account_logicHandler
+	get /from/:name(Request) returns (Response)
+}

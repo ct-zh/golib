@@ -1,0 +1,6 @@
+syntax="proto3";
+
+package user_account_base;
+
+option go_package="./user_account_base";
+
