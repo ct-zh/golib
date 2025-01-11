@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"go/parser"
 	"go/token"
@@ -16,21 +17,54 @@ func main() {
 	}
 
 	dir := os.Args[1]
-	if err := checkDir(dir); err != nil {
+
+	// 读取特定文件内容作为 forbiddenPrefix
+	forbiddenPrefix, err := readForbiddenPrefix(dir)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
+	if err := checkDir(dir, forbiddenPrefix); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+// 读取特定文件内容
+func readForbiddenPrefix(dir string) (string, error) {
+	filePath := filepath.Join(dir, "app/Godeps/GoDeps.json")
+
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return "", fmt.Errorf("GoDeps.json file does not exist: %v", err)
+	}
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read GoDeps.json file: %v", err)
+	}
+
+	var data struct {
+		ImportPath string `json:"ImportPath"`
+	}
+
+	err = json.Unmarshal(content, &data)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse GoDeps.json file: %v", err)
+	}
+
+	return data.ImportPath, nil
 }
 
 // 遍历指定目录及其子目录中的所有 Go 文件
-func checkDir(dir string) error {
+func checkDir(dir, forbiddenPrefix string) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if !info.IsDir() && strings.HasSuffix(info.Name(), ".go") {
-			err = checkFile(path)
+			err = checkFile(path, forbiddenPrefix)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
@@ -40,7 +74,7 @@ func checkDir(dir string) error {
 }
 
 // 检查文件是否引入了不被允许的包
-func checkFile(path string) error {
+func checkFile(path, forbiddenPrefix string) error {
 	currentPackagePath, err := getPackagePath(path)
 	if err != nil {
 		return fmt.Errorf("failed to get package path for %s: %v", path, err)
@@ -55,7 +89,7 @@ func checkFile(path string) error {
 	for _, importSpec := range file.Imports {
 		importPath := strings.Trim(importSpec.Path.Value, "\"")
 		// 检查是否是允许的包
-		if !isAllowedPackage(currentPackagePath, importPath) {
+		if !isAllowedPackage(currentPackagePath, importPath, forbiddenPrefix) {
 			return fmt.Errorf("file %s imports forbidden package %s", path, importPath)
 		}
 	}
@@ -72,10 +106,7 @@ func getPackagePath(filename string) (string, error) {
 	return file.Name.Name, nil
 }
 
-func isAllowedPackage(currentPackagePath, importPath string) bool {
-	// 禁止的路径前缀
-	forbiddenPrefix := "git.inke.cn/changsha/yuban/server"
-
+func isAllowedPackage(currentPackagePath, importPath, forbiddenPrefix string) bool {
 	// 检查是否是禁止的路径前缀
 	if strings.HasPrefix(importPath, forbiddenPrefix) {
 		// 检查是否在 commlib 下
