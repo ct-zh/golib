@@ -1,132 +1,95 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
+type Config struct {
+	CheckImport []string `yaml:"check_import"`
+}
+
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <directory>\n", os.Args[0])
+	// 读取配置文件
+	config, err := readConfig()
+	if err != nil {
+		if os.IsNotExist(err) {
+			// 如果配置文件不存在，直接返回成功
+			os.Exit(0)
+		}
+		fmt.Printf("读取配置文件失败: %v\n", err)
 		os.Exit(1)
 	}
 
-	dir := os.Args[1]
-
-	// 读取特定文件内容作为 forbiddenPrefix
-	forbiddenPrefix, err := readForbiddenPrefix(dir)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	if err := checkDir(dir, forbiddenPrefix); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
-
-// 读取特定文件内容
-func readForbiddenPrefix(dir string) (string, error) {
-	filePath := filepath.Join(dir, "app/Godeps/GoDeps.json")
-
-	// 检查文件是否存在
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return "", fmt.Errorf("GoDeps.json file does not exist: %v", err)
-	}
-
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read GoDeps.json file: %v", err)
-	}
-
-	var data struct {
-		ImportPath string `json:"ImportPath"`
-	}
-
-	err = json.Unmarshal(content, &data)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse GoDeps.json file: %v", err)
-	}
-
-	return data.ImportPath, nil
-}
-
-// 遍历指定目录及其子目录中的所有 Go 文件
-func checkDir(dir, forbiddenPrefix string) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	// 扫描当前目录下的所有 Go 文件
+	hasError := false
+	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".go") {
-			err = checkFile(path, forbiddenPrefix)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+		if !info.IsDir() && strings.HasSuffix(path, ".go") {
+			if errs := checkFile(path, config.CheckImport); len(errs) > 0 {
+				hasError = true
+				for _, err := range errs {
+					fmt.Printf("%s: %v\n", path, err)
+				}
 			}
 		}
 		return nil
 	})
+
+	if err != nil {
+		fmt.Printf("扫描文件失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	if hasError {
+		os.Exit(1)
+	}
 }
 
-// 检查文件是否引入了不被允许的包
-func checkFile(path, forbiddenPrefix string) error {
-	currentPackagePath, err := getPackagePath(path)
+func readConfig() (*Config, error) {
+	data, err := ioutil.ReadFile(".golangci.yml")
 	if err != nil {
-		return fmt.Errorf("failed to get package path for %s: %v", path, err)
+		return nil, err
+	}
+
+	var config Config
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("解析配置文件失败: %v", err)
+	}
+
+	return &config, nil
+}
+
+func checkFile(path string, forbiddenImports []string) []error {
+	if len(forbiddenImports) == 0 {
+		return nil
 	}
 
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, path, nil, parser.AllErrors)
+	f, err := parser.ParseFile(fset, path, nil, parser.ImportsOnly)
 	if err != nil {
-		return fmt.Errorf("failed to parse file %s: %v", path, err)
+		return []error{fmt.Errorf("解析文件失败: %v", err)}
 	}
 
-	for _, importSpec := range file.Imports {
-		importPath := strings.Trim(importSpec.Path.Value, "\"")
-		// 检查是否是允许的包
-		if !isAllowedPackage(currentPackagePath, importPath, forbiddenPrefix) {
-			return fmt.Errorf("file %s imports forbidden package %s", path, importPath)
+	var errors []error
+	for _, imp := range f.Imports {
+		importPath := strings.Trim(imp.Path.Value, "\"")
+		for _, forbidden := range forbiddenImports {
+			if strings.HasPrefix(importPath, forbidden) {
+				pos := fset.Position(imp.Pos())
+				errors = append(errors, fmt.Errorf("第 %d 行: 禁止导入包 %s", pos.Line, importPath))
+			}
 		}
 	}
-	return nil
-}
 
-// 获取当前文件的包路径
-func getPackagePath(filename string) (string, error) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filename, nil, parser.PackageClauseOnly)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse file %s: %v", filename, err)
-	}
-	return file.Name.Name, nil
-}
-
-func isAllowedPackage(currentPackagePath, importPath, forbiddenPrefix string) bool {
-	// 检查是否是禁止的路径前缀
-	if strings.HasPrefix(importPath, forbiddenPrefix) {
-		// 检查是否在 commlib 下
-		if strings.HasPrefix(currentPackagePath, "commlib") {
-			return true
-		}
-		// 检查是否在当前包的包路径下（去除禁止路径前缀后的相对路径比较）
-		currentPathWithoutForbidden := strings.TrimPrefix(currentPackagePath, forbiddenPrefix+"/")
-		importPathWithoutFirbidden := strings.TrimPrefix(importPath, forbiddenPrefix+"/")
-		commonPrefix := longestCommonPrefix(currentPathWithoutForbidden, importPathWithoutFirbidden)
-		return commonPrefix == currentPathWithoutForbidden
-	}
-	return true
-}
-
-// 获取两个字符串的最长公共前缀
-func longestCommonPrefix(str1, str2 string) string {
-	i := 0
-	for i < len(str1) && i < len(str2) && str1[i] == str2[i] {
-		i++
-	}
-	return str1[:i]
+	return errors
 }
